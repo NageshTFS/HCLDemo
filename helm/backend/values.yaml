@@ -46,7 +46,10 @@ cloudsql:
   instanceConnectionName: "hcldemo-504209:us-central1:employee-app-poc-db"
   proxyImage:
     repository: gcr.io/cloud-sql-connectors/cloud-sql-proxy
-    tag: latest
+    # Pinned deliberately: ":latest" makes deploys non-reproducible (the same chart revision
+    # can silently pull a different proxy build) and an upstream regression would land in
+    # production without any change on our side.
+    tag: "2.24.1"
   resources:
     requests:
       cpu: 50m

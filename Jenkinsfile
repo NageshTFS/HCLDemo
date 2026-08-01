@@ -25,15 +25,50 @@
 //   - gcp-sa-key  (Secret file)  GCP service account JSON key - Artifact Registry push + GKE deploy
 //   - sonar-token (Secret text)  Auth token for the self-hosted SonarQube instance
 
+// Rolls back only if there is a revision genuinely worth returning to.
+//
+// Plain `helm rollback <release>` targets "current - 1" blindly. Across consecutive failures
+// that walks the release backwards onto revisions that never worked - and because a rollback
+// is recorded as succeeding the moment its manifests apply (not when the pods become healthy),
+// those broken revisions get marked "superseded" and look healthy in `helm history`. So status
+// alone is not a safe signal: a revision only counts here if Helm itself described it as
+// "Install complete" or "Upgrade complete", which excludes prior rollbacks.
+//
+// If nothing qualifies (first-ever deploy, or every prior revision failed), the current state
+// is deliberately left in place - there is nothing better to return to, and preserving it
+// keeps the failure diagnosable instead of masking it with an equally broken older config.
+def rollbackToLastHealthyRevision(String release) {
+    def target = sh(
+        script: """
+            set +e
+            HIST=\$(helm history ${release} --namespace ${env.NAMESPACE} --max 50 -o json 2>/dev/null)
+            [ -z "\$HIST" ] && exit 0
+            CUR=\$(echo "\$HIST" | jq -r 'max_by(.revision) | .revision')
+            echo "\$HIST" | jq -r --argjson cur "\$CUR" \
+                '[.[] | select(.revision < \$cur)
+                      | select((.status == "deployed" or .status == "superseded")
+                               and (.description == "Install complete" or .description == "Upgrade complete"))]
+                 | max_by(.revision) | .revision // empty'
+        """,
+        returnStdout: true
+    ).trim()
+
+    if (target) {
+        echo "Rolling back Helm release '${release}' to revision ${target} in namespace ${env.NAMESPACE}"
+        sh "helm rollback ${release} ${target} --namespace ${env.NAMESPACE} || true"
+    } else {
+        echo "Skipping rollback of '${release}': no previously-healthy revision to return to " +
+             "(first deploy, or every earlier revision failed). Leaving current state for diagnosis."
+    }
+}
+
 def rollbackChangedReleases(String reason) {
     echo "ROLLBACK: ${reason}"
     if (env.BACKEND_CHANGED == 'true') {
-        echo "Rolling back Helm release 'backend' in namespace ${env.NAMESPACE}"
-        sh "helm rollback backend --namespace ${env.NAMESPACE} || true"
+        rollbackToLastHealthyRevision('backend')
     }
     if (env.FRONTEND_CHANGED == 'true') {
-        echo "Rolling back Helm release 'frontend' in namespace ${env.NAMESPACE}"
-        sh "helm rollback frontend --namespace ${env.NAMESPACE} || true"
+        rollbackToLastHealthyRevision('frontend')
     }
 }
 
