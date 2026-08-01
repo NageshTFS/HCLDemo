@@ -66,8 +66,10 @@ frontendService:
   port: 80
 
 ingress:
-  # Placeholder host - replace once a real domain is pointed at the Ingress IP.
-  host: employee-app-poc.example.placeholder
+  # Empty on purpose: no real domain points at this Ingress yet, so leaving this unset lets the
+  # rule match any Host header and the app is reachable directly at the Ingress IP. Set this to
+  # a real domain once one exists (and see templates/ingress.yaml for the managed-cert swap).
+  host: ""
   # GKE's native Ingress controller class.
   className: gce
   tls:

@@ -46,11 +46,19 @@ metadata:
     kubernetes.io/ingress.class: {{ .Values.ingress.className | quote }}
 spec:
   tls:
-    - hosts:
+    - secretName: {{ .Values.ingress.tls.secretName }}
+      {{- if .Values.ingress.host }}
+      hosts:
         - {{ .Values.ingress.host | quote }}
-      secretName: {{ .Values.ingress.tls.secretName }}
+      {{- end }}
   rules:
-    - host: {{ .Values.ingress.host | quote }}
+    # `host` is omitted when .Values.ingress.host is empty, so the rule matches ANY host and the
+    # app is reachable at the raw Ingress IP. With a host set, requests whose Host header doesn't
+    # match fall through to the default backend (404) - which makes IP-based access impossible
+    # unless that host actually resolves. Set a host only once a real domain points here.
+    - {{- if .Values.ingress.host }}
+      host: {{ .Values.ingress.host | quote }}
+      {{- end }}
       http:
         paths:
           # More specific /api prefix listed first.
