@@ -7,8 +7,11 @@
 # remove entries here once a real fix becomes available - this file should shrink over time,
 # not grow.
 
-# alpine base image (eclipse-temurin:21-jre-alpine) - fix 2.8.2-r0 not yet in the upstream image
-CVE-2026-56408
+# NOTE: alpine-level CVEs (libexpat, p11-kit, etc.) are NOT listed here - both Dockerfiles now
+# run `apk upgrade` at build time, which pulls the patched packages directly from Alpine's repo
+# instead of waiting for the upstream base images to be rebuilt. If a future scan still flags
+# an alpine package, check whether the fix is actually published (pkgs.alpinelinux.org) before
+# assuming apk upgrade should have caught it.
 
 # jackson-core / jackson-databind - fix versions 2.18.8/2.21.4/2.22.1/3.1.4 not yet published
 # (latest available: 2.19.1, already in use via Spring Boot 3.5.3's BOM)
@@ -31,8 +34,9 @@ CVE-2026-41695
 CVE-2025-41248
 CVE-2026-22732
 
-# org.springframework:spring-core / spring-expression - fix 6.2.11/6.2.19/7.0.8 not yet published
-# (latest available: 6.2.8, in use via Spring Boot 3.5.3's BOM)
+# org.springframework:spring-core / spring-expression / spring-webmvc - fix 6.2.11/6.2.19/7.0.8
+# not yet published (latest available: 6.2.8, in use via Spring Boot 3.5.3's BOM)
 CVE-2025-41249
 CVE-2026-41850
 CVE-2026-41845
+CVE-2026-41842

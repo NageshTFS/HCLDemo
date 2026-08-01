@@ -13,6 +13,11 @@ RUN mvn -q -B clean package -DskipTests
 FROM eclipse-temurin:21-jre-alpine AS runtime
 WORKDIR /app
 
+# The base image's own apk snapshot lags behind Alpine's actual package repo (stage 8's Trivy
+# scan has caught real, already-patched-upstream CVEs this way) - upgrade at build time instead
+# of waiting for eclipse-temurin to rebuild the image.
+RUN apk update && apk upgrade --no-cache
+
 RUN addgroup -S spring && adduser -S spring -G spring
 USER spring:spring
 

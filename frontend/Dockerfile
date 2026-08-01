@@ -7,6 +7,9 @@
 # proxy for /api/* traffic.
 FROM nginx:alpine
 
+# See backend/Dockerfile for why - same rationale, also an alpine base image.
+RUN apk update && apk upgrade --no-cache
+
 ENV BACKEND_HOST=backend:8080
 
 # Static site
