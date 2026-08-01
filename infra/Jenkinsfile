@@ -1,0 +1,134 @@
+// infra/Jenkinsfile - Terraform infra provisioning pipeline for the Employee Management POC
+//
+// SEPARATE Jenkins Pipeline job from the root Jenkinsfile (which builds/deploys the app).
+// This one provisions the infrastructure the app pipeline deploys onto: VPC, GKE, Cloud SQL,
+// Artifact Registry, IAM/Workload Identity bindings (see ../infra/*.tf). It does NOT create
+// the Jenkins VM itself, which is intentionally created by hand first — see
+// jenkins-vm-manual-setup.md for why (Jenkins can't create the VM it runs on) and how.
+//
+// Runs on this same Jenkins controller (agent any, no separate build agent — see
+// ARCHITECTURE.md Decisions Log #8, same simplification as the app pipeline).
+//
+// Required Jenkins credentials (create these before running - see jenkins/README.md):
+//   - terraform-sa-key  (Secret file)  JSON key for the bootstrap Terraform service account
+//                                      (see jenkins-vm-manual-setup.md step 1 - NOT the same
+//                                      SA as the app pipeline's gcp-sa-key)
+//   - terraform-tfvars  (Secret file)  A filled-in terraform.tfvars (project_id, db_password,
+//                                      jenkins_admin_ips, etc.) - see terraform.tfvars.example.
+//                                      Kept as a Jenkins credential, not a workspace file,
+//                                      since it contains db_password and must never be in git.
+//
+// Required parameter:
+//   - TF_STATE_BUCKET: the GCS bucket created in jenkins-vm-manual-setup.md step 2, used as
+//     the remote state backend.
+//
+// Deliberately has NO destroy stage - this pipeline only ever plans/applies. Tearing down
+// infrastructure is consequential enough that it should stay a manual, explicit action.
+
+pipeline {
+    agent any
+
+    options {
+        timestamps()
+        disableConcurrentBuilds()
+        buildDiscarder(logRotator(numToKeepStr: '20'))
+        skipDefaultCheckout(true)
+    }
+
+    parameters {
+        string(name: 'TF_STATE_BUCKET', defaultValue: 'REPLACE_WITH_YOUR_TFSTATE_BUCKET', description: 'GCS bucket for Terraform remote state (see jenkins-vm-manual-setup.md step 2)')
+    }
+
+    environment {
+        TERRAFORM_SA_KEY = credentials('terraform-sa-key')
+        TERRAFORM_TFVARS = credentials('terraform-tfvars')
+        GOOGLE_APPLICATION_CREDENTIALS = "${env.TERRAFORM_SA_KEY}"
+    }
+
+    stages {
+
+        stage('1. Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('2. Terraform Init') {
+            steps {
+                dir('infra') {
+                    sh """
+                        terraform init \
+                            -backend-config="bucket=${params.TF_STATE_BUCKET}" \
+                            -backend-config="prefix=employee-app-poc/infra"
+                    """
+                }
+            }
+        }
+
+        stage('3. Terraform Validate') {
+            steps {
+                dir('infra') {
+                    sh 'terraform fmt -check -recursive'
+                    sh 'terraform validate'
+                }
+            }
+        }
+
+        stage('4. Terraform Plan') {
+            steps {
+                dir('infra') {
+                    sh "terraform plan -var-file=\"${env.TERRAFORM_TFVARS}\" -out=tfplan"
+                    // Human-readable copy for the approval step below and for the audit trail -
+                    // the binary tfplan itself isn't safely human-readable inline.
+                    sh 'terraform show -no-color tfplan > tfplan.txt'
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'infra/tfplan.txt', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('5. Approve Apply') {
+            steps {
+                // Blocks here - a human must open the build, read tfplan.txt (archived above,
+                // or console output), and explicitly approve before anything is created/changed.
+                // Deliberately not automatic: infra changes are harder to reverse than app
+                // deploys, so this is the one gate the app pipeline's rollback-and-move-on
+                // pattern doesn't apply to.
+                input message: 'Review infra/tfplan.txt (archived artifact) - apply this Terraform plan?', ok: 'Apply'
+            }
+        }
+
+        stage('6. Terraform Apply') {
+            steps {
+                dir('infra') {
+                    sh 'terraform apply -auto-approve tfplan'
+                }
+            }
+        }
+
+        stage('7. Capture Outputs') {
+            steps {
+                dir('infra') {
+                    // Non-sensitive outputs only - gke_cluster_endpoint/ca_certificate are
+                    // marked sensitive in outputs.tf and won't appear in plain -json either
+                    // without -json's sensitive-value flag, which this deliberately doesn't use.
+                    sh 'terraform output > terraform-outputs.txt'
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'infra/terraform-outputs.txt', allowEmptyArchive: true
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "Infra pipeline finished: ${currentBuild.currentResult}"
+        }
+    }
+}

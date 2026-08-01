@@ -15,6 +15,11 @@ infra/*.tfvars
 infra/*.tfvars.json
 infra/tfplan
 infra/crash.log
+infra/*-sa-key.json
+
+# Local-only operational docs for this deployment — never commit
+appCredentials.md
+permissions.md
 
 # Backend (Maven/Java)
 backend/target/

@@ -1,0 +1,50 @@
+# Copy this file to terraform.tfvars and fill in real values, then `terraform apply`.
+# terraform.tfvars itself is gitignored (see repo .gitignore's `infra/*.tfvars` pattern) —
+# never commit it once it has a real db_password in it. This .example file has none, so it's
+# safe to keep in git as a template.
+#
+#   cp infra/terraform.tfvars.example infra/terraform.tfvars
+#   # then edit infra/terraform.tfvars with your real values
+#
+# See infra/README.md (IAM / Permissions Map, Prerequisites) and infra/manualsteps.md for the
+# full picture of what these values unlock.
+
+############################
+# Required — terraform apply fails without these
+############################
+
+# Real GCP project ID (not the display name!) — find it with:
+#   gcloud projects list --filter="name:HCLDemo"
+project_id = "REPLACE_WITH_REAL_PROJECT_ID"
+
+# Password for the Cloud SQL app DB user (var.db_user, default "employeeapp"). Pick a real
+# secret value — this is NOT the same as the employee-app-secrets Kubernetes Secret you create
+# later (manualsteps.md), but the two must end up matching since Kubernetes needs this same
+# password to actually connect.
+db_password = "REPLACE_WITH_A_REAL_PASSWORD"
+
+############################
+# Strongly recommended — defaults lock everyone out until you set these
+############################
+
+# Your own public IP (CIDR form) — without this, the firewall blocks Jenkins :8080,
+# SonarQube :9000, AND kubectl against the GKE control-plane endpoint. Find your IP with
+# `curl ifconfig.me`, then append /32.
+jenkins_admin_ips = ["REPLACE_WITH_YOUR_IP/32"]
+
+############################
+# Optional — leave empty until you actually need them
+############################
+
+# Grants roles/iap.tunnelResourceAccessor for IAP-tunneled SSH to the Jenkins VM.
+# iap_tunnel_admins = ["user:you@example.com"]
+
+# GitHub's published webhook source IPs — only needed once you're wiring the real GitHub
+# webhook (jenkins/README.md step 9). Fetch current values from https://api.github.com/meta
+# (the "hooks" key) rather than trusting a copy-pasted list, since GitHub's ranges change.
+# github_webhook_ip_ranges = ["192.30.252.0/22", "185.199.108.0/22", "140.82.112.0/20"]
+
+############################
+# Everything else (region, zone, machine sizes, cluster/db names) has a working POC default
+# in variables.tf — no need to override unless you have a specific reason to.
+############################

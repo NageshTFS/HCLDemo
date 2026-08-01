@@ -1,6 +1,6 @@
 # VPC + subnet + Private Service Access (for Cloud SQL private IP) + Cloud NAT
-# (GKE nodes have no public IP, so their egress needs NAT; the Jenkins VM has a public IP but
-# still routes through the same NAT for its internal-subnet-sourced traffic).
+# (GKE nodes have no public IP, so their egress needs NAT. The Jenkins VM is NOT part of this
+# VPC — it's created manually in the `default` network, see jenkins-vm-manual-setup.md.)
 
 resource "google_compute_network" "vpc" {
   project                 = var.project_id
@@ -62,8 +62,9 @@ resource "google_service_networking_connection" "private_vpc_connection" {
 ############################
 # Cloud Router + Cloud NAT
 # Needed because GKE nodes (enable_private_nodes) have no public IPs but still need outbound
-# internet (pull base images, apt/gcloud updates, reach GitHub, etc.). The Jenkins VM has its
-# own public IP for inbound (jenkins-vm.tf) but this doesn't change its outbound path.
+# internet (pull base images, apt/gcloud updates, reach GitHub, etc.). The Jenkins VM (created
+# manually, see jenkins-vm-manual-setup.md — it is NOT in this VPC) has its own public IP for
+# inbound; this NAT is unrelated to its outbound path.
 ############################
 
 resource "google_compute_router" "router" {
@@ -117,9 +118,10 @@ resource "google_compute_firewall" "allow_internal" {
   ]
 }
 
-# SSH to the Jenkins VM only via IAP TCP forwarding — even though the VM has a public IP
-# (jenkins-vm.tf, for the Jenkins/SonarQube UIs), port 22 is not opened to it at all; this also
-# blocks SSH from other internal sources.
+# SSH to the Jenkins VM only via IAP TCP forwarding, port 22 is never opened otherwise. Inert
+# today: the real Jenkins VM lives in the `default` network (jenkins-vm-manual-setup.md), not
+# this VPC, so target-tag "jenkins" matches nothing here unless that VM is later moved in —
+# jenkins-vm-manual-setup.md step 4 sets up the equivalent rule in whatever network it's in.
 resource "google_compute_firewall" "allow_iap_ssh" {
   project = var.project_id
   name    = "${var.name_prefix}-allow-iap-ssh"
@@ -135,9 +137,8 @@ resource "google_compute_firewall" "allow_iap_ssh" {
   target_tags   = ["jenkins"]
 }
 
-# Jenkins UI (:8080) — admin access + GitHub webhook delivery. The Jenkins VM has a public IP
-# (jenkins-vm.tf), so this rule is live, not a placeholder: only these source ranges can reach
-# port 8080 on the VM at all.
+# Jenkins UI (:8080) — admin access + GitHub webhook delivery. Inert today, same reason as
+# allow_iap_ssh above: the real Jenkins VM is in the `default` network, not this VPC.
 resource "google_compute_firewall" "allow_jenkins_admin_and_webhook" {
   project = var.project_id
   name    = "${var.name_prefix}-allow-jenkins-http"
@@ -152,9 +153,10 @@ resource "google_compute_firewall" "allow_jenkins_admin_and_webhook" {
   target_tags   = ["jenkins"]
 }
 
-# SonarQube UI (:9000) — admin/browser access only. Unlike Jenkins, nothing external needs to
-# reach SonarQube directly: the pipeline talks to it over localhost (both run on the same VM),
-# so GitHub's webhook ranges are deliberately NOT included here.
+# SonarQube UI (:9000) — admin/browser access only. Inert today, same reason as the two rules
+# above. Unlike Jenkins, nothing external needs to reach SonarQube directly: the pipeline talks
+# to it over localhost (both run on the same VM), so GitHub's webhook ranges are deliberately
+# NOT included here.
 resource "google_compute_firewall" "allow_sonarqube_admin" {
   project = var.project_id
   name    = "${var.name_prefix}-allow-sonarqube-http"

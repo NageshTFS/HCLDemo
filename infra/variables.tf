@@ -201,22 +201,34 @@ variable "artifact_registry_helm_repo_id" {
 
 ############################
 # Jenkins VM
+#
+# NOT consumed by any resource in this module — the Jenkins VM is created manually, not by
+# Terraform (see jenkins-vm-manual-setup.md), to avoid the bootstrap problem of Jenkins having
+# to create the VM it runs on. These four variables are kept only as the documented reference
+# values that manual setup guide's `gcloud compute instances create` command uses — change them
+# here AND in the command you actually run, they don't stay in sync automatically.
 ############################
 
 variable "jenkins_machine_type" {
-  description = "Machine type for the Jenkins GCE VM."
+  description = "Reference value for the Jenkins GCE VM's machine type — see jenkins-vm-manual-setup.md."
   type        = string
   default     = "e2-medium"
 }
 
-variable "jenkins_boot_image" {
-  description = "Boot image for the Jenkins VM."
+variable "jenkins_boot_image_family" {
+  description = "Reference value for the Jenkins GCE VM's boot image family (--image-family) — see jenkins-vm-manual-setup.md."
   type        = string
-  default     = "debian-cloud/debian-12"
+  default     = "ubuntu-2404-lts-amd64"
+}
+
+variable "jenkins_boot_image_project" {
+  description = "Reference value for the Jenkins GCE VM's boot image project (--image-project) — see jenkins-vm-manual-setup.md."
+  type        = string
+  default     = "ubuntu-os-cloud"
 }
 
 variable "jenkins_boot_disk_size_gb" {
-  description = "Boot disk size (GB) for the Jenkins VM — needs headroom for Docker images, SonarQube, build workspaces."
+  description = "Reference value for the Jenkins GCE VM's boot disk size (GB, needs headroom for Docker images, SonarQube, build workspaces) — see jenkins-vm-manual-setup.md."
   type        = number
   default     = 100
 }

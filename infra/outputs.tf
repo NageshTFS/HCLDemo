@@ -50,18 +50,13 @@ output "artifact_registry_helm_repo_url" {
   value       = "oci://${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.helm_charts.repository_id}"
 }
 
-output "jenkins_vm_internal_ip" {
-  description = "Jenkins VM internal IP (used for the GitHub webhook / kubectl / VPC-internal access)."
-  value       = google_compute_instance.jenkins.network_interface[0].network_ip
-}
-
-output "jenkins_vm_external_ip" {
-  description = "Jenkins VM public IP — browse http://<this>:8080 (Jenkins) and http://<this>:9000 (SonarQube). Only reachable from var.jenkins_admin_ips (+ var.github_webhook_ip_ranges on :8080), per the firewall rules in networking.tf."
-  value       = google_compute_instance.jenkins.network_interface[0].access_config[0].nat_ip
-}
+# No jenkins_vm_*_ip output here — the Jenkins VM is created manually, not by this module
+# (see jenkins-vm-manual-setup.md). Get its IP with:
+#   gcloud compute instances describe employee-app-poc-jenkins --zone=<your zone> \
+#     --format='value(networkInterfaces[0].accessConfigs[0].natIP)'
 
 output "jenkins_service_account_email" {
-  description = "Jenkins VM's GCP service account email."
+  description = "GCP service account for the ongoing app-deploy pipeline (roles/artifactregistry.writer, roles/container.developer, roles/cloudsql.client). Generate a key for it (`gcloud iam service-accounts keys create`) and upload as the Jenkins credential gcp-sa-key — see jenkins/README.md. NOT the same identity as whatever ran `terraform apply` itself (see jenkins-vm-manual-setup.md / infra/Jenkinsfile for that bootstrap SA)."
   value       = google_service_account.jenkins.email
 }
 

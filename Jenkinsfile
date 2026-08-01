@@ -22,9 +22,8 @@
 //
 // Placeholder Jenkins credential IDs referenced below (create these in the Jenkins credential
 // store before running for real - none of them exist in this repo):
-//   - gcp-sa-key        (Secret file)  GCP service account JSON key - Artifact Registry push + GKE deploy
-//   - sonar-token       (Secret text)  Auth token for the self-hosted SonarQube instance
-//   - slack-webhook-url (Secret text)  PLACEHOLDER Slack incoming webhook URL for stage 13 notify
+//   - gcp-sa-key  (Secret file)  GCP service account JSON key - Artifact Registry push + GKE deploy
+//   - sonar-token (Secret text)  Auth token for the self-hosted SonarQube instance
 
 def rollbackChangedReleases(String reason) {
     echo "ROLLBACK: ${reason}"
@@ -44,25 +43,6 @@ def notify(String status) {
         "(backend_changed=${env.BACKEND_CHANGED ?: 'n/a'}, frontend_changed=${env.FRONTEND_CHANGED ?: 'n/a'}) " +
         "${env.BUILD_URL ?: ''}"
     echo "NOTIFY: ${summary}"
-
-    // --- PLACEHOLDER: Slack notification ---
-    // Requires the 'slack-webhook-url' credential (a real Incoming Webhook URL) to be created
-    // in Jenkins. Until then this call fails harmlessly and the pipeline result is unaffected.
-    def escaped = summary.replace('\\', '\\\\').replace('"', '\\"')
-    sh(script: """
-        curl -sf -X POST -H 'Content-type: application/json' \
-            --data '{"text": "${escaped}"}' \
-            "\$SLACK_WEBHOOK_URL" || echo 'Slack notify skipped/failed - placeholder webhook not yet configured'
-    """, returnStatus: true)
-
-    // --- PLACEHOLDER: Email notification ---
-    // Uncomment once the Email Extension plugin + an SMTP relay are configured on the Jenkins
-    // VM. Replace the recipient placeholder before enabling.
-    // emailext(
-    //     subject: "Employee App POC pipeline ${status}: build #${env.BUILD_NUMBER}",
-    //     body: summary,
-    //     to: 'REPLACE_WITH_TEAM_DISTRIBUTION_LIST@example.com'
-    // )
 }
 
 pipeline {
@@ -85,7 +65,7 @@ pipeline {
         string(name: 'GCP_PROJECT_ID', defaultValue: 'REPLACE_WITH_GCP_PROJECT_ID', description: 'GCP project hosting Artifact Registry and GKE')
         string(name: 'GAR_LOCATION', defaultValue: 'us-central1', description: 'Artifact Registry region')
         string(name: 'GAR_REPOSITORY', defaultValue: 'employee-app', description: 'Artifact Registry Docker repository name')
-        string(name: 'GKE_CLUSTER', defaultValue: 'employee-app-poc-cluster', description: 'GKE cluster name (provisioned by Terraform under infra/)')
+        string(name: 'GKE_CLUSTER', defaultValue: 'employee-app-poc-gke', description: 'GKE cluster name (provisioned by Terraform under infra/)')
         string(name: 'GKE_ZONE', defaultValue: 'us-central1-a', description: 'GKE cluster zone (single-zone POC cluster)')
     }
 
@@ -97,9 +77,8 @@ pipeline {
 
         // Placeholder credential IDs - see header comment. `credentials()` in this block both
         // exposes and masks the secret value for every stage/post block in this run.
-        GCP_SA_KEY        = credentials('gcp-sa-key')
-        SONAR_TOKEN        = credentials('sonar-token')
-        SLACK_WEBHOOK_URL = credentials('slack-webhook-url')
+        GCP_SA_KEY  = credentials('gcp-sa-key')
+        SONAR_TOKEN = credentials('sonar-token')
     }
 
     stages {

@@ -8,16 +8,13 @@ terraform {
     }
   }
 
-  # POC note: no backend configured yet — state is local by default, which is fine for
-  # authoring but NOT for any real apply (no locking, no shared state, nothing durable).
-  # Before the first real `terraform init`, configure a remote backend, e.g.:
-  #
-  # backend "gcs" {
-  #   bucket = "REPLACE_WITH_A_REAL_TF_STATE_BUCKET"
-  #   prefix = "employee-app-poc/infra"
-  # }
-  #
-  # See infra/README.md for the full prerequisites/setup checklist.
+  # Partial backend config on purpose: bucket/prefix are supplied at `terraform init` time via
+  # -backend-config flags (see infra/Jenkinsfile stage 2, and jenkins-vm-manual-setup.md step 2
+  # for creating the bucket), not hardcoded here — a real bucket name shouldn't sit in git, and
+  # this way the same config works whether you're running init from the pipeline or locally
+  # with your own -backend-config flags. Requires the bucket to already exist (Terraform can't
+  # create the bucket it's about to store its own state in).
+  backend "gcs" {}
 }
 
 provider "google" {
@@ -25,5 +22,6 @@ provider "google" {
   region  = var.region
   zone    = var.zone
   # Credentials: relies on Application Default Credentials
-  # (`gcloud auth application-default login`) — nothing is hardcoded here.
+  # (`gcloud auth application-default login` locally, or GOOGLE_APPLICATION_CREDENTIALS set to
+  # a service account key file — see infra/Jenkinsfile) — nothing is hardcoded here.
 }
