@@ -30,7 +30,9 @@ apt-get install -y --no-install-recommends \
   # startup throws UnsatisfiedLinkError / "Fontconfig head is null" and crash-loops.
 
 # --- Java (Jenkins LTS + SonarQube Community both require Java 17+; use 21 to match the app) ---
-apt-get install -y --no-install-recommends openjdk-21-jre-headless
+# JDK, not JRE - the pipeline runs `mvn clean verify` on this VM, which needs javac to compile
+# the backend. A JRE-only install has no compiler at all.
+apt-get install -y --no-install-recommends openjdk-21-jdk-headless
 
 # --- Docker Engine + CLI (still needed for the pipeline's own docker build/push/scan steps) ---
 install -m 0755 -d /etc/apt/keyrings
