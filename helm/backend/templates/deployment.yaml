@@ -85,6 +85,10 @@ spec:
           args:
             - "--structured-logs"
             - "--port=5432"
+            # The instance is private-IP only (infra/cloudsql.tf sets ipv4_enabled = false).
+            # Without this the proxy tries the public IP and fails with
+            # 'instance does not have IP of type "PUBLIC"'.
+            - "--private-ip"
             # $(VAR) expansion requires a valid C-identifier env var name, hence the dedicated
             # CLOUDSQL_INSTANCE_CONNECTION_NAME env var above rather than referencing the
             # dashed ConfigMap key directly.
