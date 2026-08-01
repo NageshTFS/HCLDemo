@@ -1,0 +1,7 @@
+# graphify - local knowledge graph tooling, not for the remote repo
+graphify-out/
+.gitattributes
+CLAUDE.md
+
+# Claude Code - local settings, not shared
+.claude/
