@@ -13,7 +13,7 @@
 
     <groupId>com.empinfo</groupId>
     <artifactId>backend</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.2-SNAPSHOT</version>
     <name>backend</name>
     <description>Employee Management POC - Backend REST API</description>
     <packaging>jar</packaging>
