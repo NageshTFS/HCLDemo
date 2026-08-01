@@ -168,8 +168,12 @@ pipeline {
                     // 'self-hosted-sonarqube' must match a "SonarQube servers" entry under
                     // Manage Jenkins > System (self-hosted instance per ARCHITECTURE.md section 3/8).
                     withSonarQubeEnv('self-hosted-sonarqube') {
+                        // Full plugin coordinate, not the "sonar:sonar" prefix shorthand -
+                        // org.sonarsource.scanner.maven isn't in Maven's default
+                        // plugin-prefix search groups (org.apache.maven.plugins,
+                        // org.codehaus.mojo), so the shorthand fails to resolve.
                         sh '''
-                            mvn --batch-mode sonar:sonar \
+                            mvn --batch-mode org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
                                 -Dsonar.projectKey=employee-app-backend \
                                 -Dsonar.login=$SONAR_TOKEN \
                                 -Dsonar.java.coveragePlugin=jacoco \
