@@ -15,6 +15,10 @@ spec:
       labels:
         app: backend
     spec:
+      # Binds the pod to the Workload Identity-annotated KSA (templates/serviceaccount.yaml).
+      # Without this the pod runs as the namespace's "default" KSA, which has no annotation,
+      # and the Cloud SQL proxy sidecar falls back to the node service account and gets a 403.
+      serviceAccountName: {{ .Values.serviceAccount.name }}
       containers:
         # --- Application container ---
         - name: backend

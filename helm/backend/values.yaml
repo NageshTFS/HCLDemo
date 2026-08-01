@@ -25,6 +25,15 @@ resources:
 # This chart only *references* it (env/secretKeyRef) - it never defines Secret data.
 secretName: employee-app-secrets
 
+# Kubernetes ServiceAccount for the backend pod, annotated for Workload Identity so the
+# Cloud SQL Auth Proxy sidecar can authenticate without a service account key.
+# `name` must match Terraform's var.backend_ksa_name and `gcpServiceAccount` must match its
+# `backend_workload_identity_sa_email` output - Terraform's IAM binding references this exact
+# namespace/name pair, so changing either here without changing it there breaks DB access.
+serviceAccount:
+  name: backend
+  gcpServiceAccount: employee-app-poc-backend-wi@hcldemo-504209.iam.gserviceaccount.com
+
 # Name of the ConfigMap this chart creates (templates/configmap.yaml).
 configMapName: employee-app-config
 
