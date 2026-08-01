@@ -13,13 +13,15 @@ service:
   type: ClusterIP
   port: 8080
 
+# Spring Boot startup is CPU-bound; at a 500m limit the web context alone took ~20s and the
+# full start ran past the probe budget. Headroom here is mostly about startup latency.
 resources:
   requests:
-    cpu: 100m
-    memory: 128Mi
-  limits:
-    cpu: 500m
+    cpu: 250m
     memory: 512Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
 
 # Name of the Secret bootstrapped manually via `kubectl create secret` (see ARCHITECTURE.md section 7).
 # This chart only *references* it (env/secretKeyRef) - it never defines Secret data.
@@ -71,6 +73,10 @@ ingress:
     # NOT created by this chart. See templates/ingress.yaml for the future managed-cert swap.
     secretName: employee-app-tls
 
+# Gates the other two probes until the app has finished starting - see deployment.yaml.
+startupProbe:
+  path: /actuator/health
+  port: 8080
 livenessProbe:
   path: /actuator/health
   port: 8080

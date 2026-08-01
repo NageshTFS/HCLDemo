@@ -50,11 +50,23 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.secretName }}
                   key: auth-password
+          # Spring Boot + Flyway migration startup exceeds what the liveness probe below would
+          # tolerate on its own (it would kill the container at ~75s, before the app ever
+          # serves /actuator/health, causing an unbreakable CrashLoopBackOff). Kubernetes
+          # suspends both other probes until this one succeeds, so slow starts are handled
+          # here rather than by loosening the ongoing liveness checks.
+          startupProbe:
+            httpGet:
+              path: {{ .Values.startupProbe.path }}
+              port: {{ .Values.startupProbe.port }}
+            periodSeconds: 10
+            timeoutSeconds: 3
+            # 30 x 10s = up to 5 minutes to finish starting.
+            failureThreshold: 30
           readinessProbe:
             httpGet:
               path: {{ .Values.readinessProbe.path }}
               port: {{ .Values.readinessProbe.port }}
-            initialDelaySeconds: 15
             periodSeconds: 10
             timeoutSeconds: 3
             failureThreshold: 3
@@ -62,7 +74,6 @@ spec:
             httpGet:
               path: {{ .Values.livenessProbe.path }}
               port: {{ .Values.livenessProbe.port }}
-            initialDelaySeconds: 30
             periodSeconds: 15
             timeoutSeconds: 3
             failureThreshold: 3
