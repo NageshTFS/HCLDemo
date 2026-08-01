@@ -1,0 +1,22 @@
+# Namespace frontend resources are deployed into. Must match helm/backend's namespace value.
+namespace: employee-app-poc
+
+replicaCount: 1
+
+image:
+  # Placeholder Artifact Registry path - overridden per-environment/pipeline (tag = git commit SHA).
+  repository: REGION-docker.pkg.dev/PROJECT_ID/employee-app/frontend
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

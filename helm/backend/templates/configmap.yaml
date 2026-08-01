@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.configMapName }}
+  namespace: {{ .Values.namespace }}
+data:
+  # Consumed by the Cloud SQL Auth Proxy sidecar (see templates/deployment.yaml) as the instance
+  # to connect to. Non-secret - the actual DB credentials live in the employee-app-secrets Secret.
+  cloudsql-instance-connection-name: {{ .Values.cloudsql.instanceConnectionName | quote }}

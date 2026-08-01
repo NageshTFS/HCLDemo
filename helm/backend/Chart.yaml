@@ -1,0 +1,6 @@
+apiVersion: v2
+name: backend
+description: Employee Management POC - Spring Boot backend API (includes Cloud SQL Auth Proxy sidecar and the shared Ingress)
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

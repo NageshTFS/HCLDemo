@@ -5,3 +5,23 @@ CLAUDE.md
 
 # Claude Code - local settings, not shared
 .claude/
+
+# Terraform - local state/plugins/plans and any tfvars (may contain secrets like db_password)
+infra/.terraform/
+infra/.terraform.lock.hcl
+infra/*.tfstate
+infra/*.tfstate.*
+infra/*.tfvars
+infra/*.tfvars.json
+infra/tfplan
+infra/crash.log
+
+# Backend (Maven/Java)
+backend/target/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+.idea/
+*.iml
+.vscode/
+

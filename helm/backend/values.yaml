@@ -1,0 +1,72 @@
+# Namespace all backend resources (and the shared Ingress) are deployed into.
+namespace: employee-app-poc
+
+replicaCount: 1
+
+image:
+  # Placeholder Artifact Registry path - overridden per-environment/pipeline (tag = git commit SHA).
+  repository: REGION-docker.pkg.dev/PROJECT_ID/employee-app/backend
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8080
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Name of the Secret bootstrapped manually via `kubectl create secret` (see ARCHITECTURE.md section 7).
+# This chart only *references* it (env/secretKeyRef) - it never defines Secret data.
+secretName: employee-app-secrets
+
+# Name of the ConfigMap this chart creates (templates/configmap.yaml).
+configMapName: employee-app-config
+
+# Cloud SQL Auth Proxy sidecar configuration.
+cloudsql:
+  # Cloud SQL instance connection name, e.g. "my-project:us-central1:empinfo-db".
+  # Templated into the ConfigMap (key: cloudsql-instance-connection-name) and consumed by the sidecar args.
+  instanceConnectionName: "PROJECT_ID:REGION:INSTANCE_NAME"
+  proxyImage:
+    # Placeholder per shared contract - swap for the current recommended Cloud SQL Auth Proxy image
+    # (e.g. gcr.io/cloud-sql-connections/cloud-sql-proxy) once a real GCP project is wired up.
+    repository: gcr.io/cloud-sql-connection-name/cloud-sql-proxy
+    tag: latest
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+# Reference to the frontend chart's Service - needed here because the shared Ingress
+# (templates/ingress.yaml) lives in this chart and must route "/*" to the frontend Service.
+# Keep in sync with helm/frontend's Service name/port if either changes.
+frontendService:
+  name: frontend
+  port: 80
+
+ingress:
+  # Placeholder host - replace once a real domain is pointed at the Ingress IP.
+  host: employee-app-poc.example.placeholder
+  # GKE's native Ingress controller class.
+  className: gce
+  tls:
+    # Name of a TLS Secret (type: kubernetes.io/tls) holding a self-signed cert for POC use.
+    # Bootstrapped manually (openssl + kubectl create secret tls), same pattern as employee-app-secrets -
+    # NOT created by this chart. See templates/ingress.yaml for the future managed-cert swap.
+    secretName: employee-app-tls
+
+livenessProbe:
+  path: /actuator/health
+  port: 8080
+readinessProbe:
+  path: /actuator/health
+  port: 8080

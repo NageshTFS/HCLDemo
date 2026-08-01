@@ -1,0 +1,49 @@
+# nginx config template for the Employee Management frontend.
+#
+# Processed by nginx:alpine's built-in entrypoint script
+# (/docker-entrypoint.d/20-envsubst-on-templates.sh), which runs
+# `envsubst` over every *.template file in /etc/nginx/templates/ at
+# container startup and writes the result to /etc/nginx/conf.d/,
+# substituting only variables that are actually set in the container
+# environment (so nginx's own $-prefixed variables below, e.g. $uri,
+# $host, are left untouched).
+#
+# - Serves the static frontend at /
+# - Reverse-proxies /api/* to ${BACKEND_HOST} for LOCAL docker-compose
+#   dev, so local behavior matches the prod GKE Ingress routing
+#   (/api/* -> backend Service, /* -> frontend Service).
+#
+# In prod this location block is normally unused (the GKE Ingress
+# routes /api/* directly to the backend Service, bypassing this
+# container), so proxy_pass resolves the upstream host per-request via
+# the resolver below rather than at nginx startup -- if ${BACKEND_HOST}
+# happens to be unresolvable in a given environment, requests to /api/*
+# on this container simply fail with a 502 instead of crash-looping the
+# whole pod.
+
+server {
+    listen 80;
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location /api/ {
+        # Docker Compose's embedded DNS resolver. Only exercised for
+        # docker-compose local dev; in prod GKE, Ingress routes /api/*
+        # straight to the backend Service and this block is not hit.
+        resolver 127.0.0.11 valid=10s;
+
+        set $backend_upstream ${BACKEND_HOST};
+        proxy_pass http://$backend_upstream/api/;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}

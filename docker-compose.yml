@@ -1,0 +1,90 @@
+# Local development stack for the Employee Management POC.
+#
+# Brings up: Postgres (local dev DB) -> backend (Spring Boot API, Flyway runs on startup)
+# -> frontend (Nginx, static UI + /api/* reverse proxy to backend).
+#
+# NOT used for production - GKE deployment is handled by the Helm charts under helm/
+# and driven by the Jenkinsfile. See ARCHITECTURE.md sections 6, 7, 9 and README.md.
+#
+# Usage:
+#   docker-compose up --build
+#   Frontend:    http://localhost
+#   Backend API: http://localhost:8080
+#   Postgres:    localhost:5432
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: empinfo-postgres
+    restart: unless-stopped
+    environment:
+      # --- LOCAL DEV ONLY --- these are throwaway credentials for the local Docker Compose
+      # stack. They are never used outside a developer's machine and must never be reused
+      # anywhere else. Production DB credentials live only in the "employee-app-secrets"
+      # Kubernetes Secret, bootstrapped manually (see README.md) - never in git.
+      POSTGRES_DB: employeedb
+      POSTGRES_USER: employeedb_dev_user
+      POSTGRES_PASSWORD: employeedb_dev_password
+      # --- END LOCAL DEV ONLY ---
+    ports:
+      - "5432:5432"
+    volumes:
+      - empinfo-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U employeedb_dev_user -d employeedb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: empinfo-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # --- LOCAL DEV ONLY --- must match the postgres service credentials above, and must
+      # match the login the frontend's dev login form is documented to use. Never reused
+      # outside local dev - see the note above and README.md.
+      # Overrides application.yml's hardcoded "localhost:5432" so the backend reaches the
+      # "postgres" service by its Compose network name instead.
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/employeedb
+      DB_USERNAME: employeedb_dev_user
+      DB_PASSWORD: employeedb_dev_password
+      APP_AUTH_USERNAME: admin
+      APP_AUTH_PASSWORD: admin_dev_password
+      # --- END LOCAL DEV ONLY ---
+    ports:
+      - "8080:8080"
+    healthcheck:
+      # Assumes a wget-capable base image (e.g. eclipse-temurin:*-jre-alpine, per
+      # ARCHITECTURE.md section 6 "slim JRE base"). Swap to curl if the backend Dockerfile
+      # uses a base image without wget.
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: empinfo-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      # Consumed by the frontend's Nginx config to reverse-proxy /api/* to the backend,
+      # matching production Ingress path routing (see ARCHITECTURE.md section 6).
+      BACKEND_HOST: backend:8080
+    ports:
+      - "80:80"
+
+volumes:
+  empinfo-postgres-data:

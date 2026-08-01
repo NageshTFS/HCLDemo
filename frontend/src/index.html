@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Employee Management</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="app-header">
+  <h1>Employee Management</h1>
+  <button id="logoutBtn" class="btn btn-secondary hidden" type="button">Log out</button>
+</header>
+
+<main>
+
+  <!-- Login view -->
+  <section id="loginView" class="view">
+    <form id="loginForm" class="login-form" novalidate>
+      <h2>Log in</h2>
+      <p id="loginError" class="form-error hidden" role="alert"></p>
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" autocomplete="username" required>
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn btn-primary">Log in</button>
+    </form>
+  </section>
+
+  <!-- Employee list view -->
+  <section id="listView" class="view hidden">
+    <div class="toolbar">
+      <button id="showAddFormBtn" class="btn btn-primary" type="button">Add Employee</button>
+      <button id="refreshBtn" class="btn btn-secondary" type="button">Refresh</button>
+    </div>
+    <p id="listError" class="form-error hidden" role="alert"></p>
+    <p id="listLoading" class="hidden">Loading...</p>
+    <div class="table-wrap">
+      <table id="employeeTable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>First Name</th>
+            <th>Last Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Department</th>
+            <th>Designation</th>
+            <th>Salary</th>
+            <th>Hire Date</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="employeeTableBody">
+        </tbody>
+      </table>
+    </div>
+    <p id="emptyMessage" class="hidden">No employees found.</p>
+  </section>
+
+  <!-- Add/Edit employee form view -->
+  <section id="formView" class="view hidden">
+    <h2 id="formTitle">Add Employee</h2>
+    <form id="employeeForm" class="employee-form" novalidate>
+      <input type="hidden" id="employeeId" name="employeeId">
+
+      <div class="form-group">
+        <label for="firstName">First Name *</label>
+        <input type="text" id="firstName" name="firstName" required>
+        <span class="field-error" id="firstNameError"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="lastName">Last Name *</label>
+        <input type="text" id="lastName" name="lastName" required>
+        <span class="field-error" id="lastNameError"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email *</label>
+        <input type="email" id="email" name="email" required>
+        <span class="field-error" id="emailError"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="phone">Phone</label>
+        <input type="text" id="phone" name="phone">
+      </div>
+
+      <div class="form-group">
+        <label for="department">Department</label>
+        <input type="text" id="department" name="department">
+      </div>
+
+      <div class="form-group">
+        <label for="designation">Designation</label>
+        <input type="text" id="designation" name="designation">
+      </div>
+
+      <div class="form-group">
+        <label for="salary">Salary</label>
+        <input type="number" id="salary" name="salary" step="0.01" min="0">
+      </div>
+
+      <div class="form-group">
+        <label for="hireDate">Hire Date</label>
+        <input type="date" id="hireDate" name="hireDate">
+      </div>
+
+      <div class="form-group">
+        <label for="status">Status</label>
+        <select id="status" name="status">
+          <option value="ACTIVE">Active</option>
+          <option value="INACTIVE">Inactive</option>
+        </select>
+      </div>
+
+      <p id="formError" class="form-error hidden" role="alert"></p>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" id="formSubmitBtn">Save</button>
+        <button type="button" class="btn btn-secondary" id="cancelFormBtn">Cancel</button>
+      </div>
+    </form>
+  </section>
+
+</main>
+
+<script src="auth.js"></script>
+<script src="api.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

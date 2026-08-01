@@ -1,0 +1,8 @@
+app:
+  security:
+    username: testuser
+    password: testpass
+
+spring:
+  flyway:
+    enabled: false

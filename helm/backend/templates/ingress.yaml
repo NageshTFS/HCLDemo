@@ -1,0 +1,70 @@
+# -----------------------------------------------------------------------------
+# Chart-placement note: this is the one shared Ingress for the whole app. It lives here in the
+# backend chart (rather than a separate helm/ingress chart) because a single Ingress resource must
+# reference BOTH the backend Service (this chart) and the frontend Service (helm/frontend chart),
+# and a two-chart POC doesn't need the extra install-ordering complexity of a third chart just to
+# host one Ingress object. helm/frontend's Service name/port is mirrored into
+# .Values.frontendService here so this template can route "/*" to it.
+# -----------------------------------------------------------------------------
+#
+# TLS (current, POC-only): terminates using a plain Kubernetes Secret (type: kubernetes.io/tls)
+# holding a self-signed certificate for the raw Ingress IP. Bootstrapped manually - NOT created by
+# Helm/git, same pattern as the employee-app-secrets Secret:
+#
+#   openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+#     -keyout tls.key -out tls.crt -subj "/CN=<ingress-ip-or-placeholder-host>"
+#   kubectl create secret tls employee-app-tls \
+#     --cert=tls.crt --key=tls.key -n employee-app-poc
+#
+# -----------------------------------------------------------------------------
+# FUTURE SWAP - once a real domain is pointed at the Ingress IP, replace the self-signed TLS setup
+# above with a GKE-managed certificate:
+#
+#   apiVersion: networking.gke.io/v1
+#   kind: ManagedCertificate
+#   metadata:
+#     name: employee-app-cert
+#     namespace: employee-app-poc
+#   spec:
+#     domains:
+#       - your-real-domain.example.com
+#
+# Then on THIS Ingress: drop the `tls:` block below, delete the employee-app-tls Secret reference,
+# and add the annotation:
+#
+#   networking.gke.io/managed-certificates: employee-app-cert
+#
+# (GCE Ingress will pick up the ManagedCertificate automatically once that annotation is present
+# and the ManagedCertificate reports status "Active".)
+# -----------------------------------------------------------------------------
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: employee-app-ingress
+  namespace: {{ .Values.namespace }}
+  annotations:
+    kubernetes.io/ingress.class: {{ .Values.ingress.className | quote }}
+spec:
+  tls:
+    - hosts:
+        - {{ .Values.ingress.host | quote }}
+      secretName: {{ .Values.ingress.tls.secretName }}
+  rules:
+    - host: {{ .Values.ingress.host | quote }}
+      http:
+        paths:
+          # More specific /api prefix listed first.
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: {{ .Values.service.port }}
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Values.frontendService.name }}
+                port:
+                  number: {{ .Values.frontendService.port }}
