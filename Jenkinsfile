@@ -118,26 +118,14 @@ pipeline {
         stage('3. Detect Changed Paths') {
             steps {
                 script {
-                    // GIT_PREVIOUS_SUCCESSFUL_COMMIT is populated automatically by the Jenkins
-                    // Git plugin for a webhook/poll-triggered pipeline job against 'main'.
-                    // Fall back to the parent commit, then to "build everything" for the very
-                    // first build on a fresh job / fresh clone with no prior success.
-                    def baseCommit = env.GIT_PREVIOUS_SUCCESSFUL_COMMIT
-                    if (!baseCommit) {
-                        baseCommit = sh(script: 'git rev-parse HEAD~1 2>/dev/null || true', returnStdout: true).trim()
-                    }
-
-                    if (!baseCommit) {
-                        echo 'No previous successful build or parent commit available - treating backend/ and frontend/ as both changed.'
-                        env.BACKEND_CHANGED = 'true'
-                        env.FRONTEND_CHANGED = 'true'
-                    } else {
-                        def diffOutput = sh(script: "git diff --name-only ${baseCommit} HEAD || true", returnStdout: true).trim()
-                        echo "Files changed since ${baseCommit}:\n${diffOutput}"
-                        def files = diffOutput ? diffOutput.split('\n') as List : []
-                        env.BACKEND_CHANGED  = files.any { it.startsWith('backend/') }  ? 'true' : 'false'
-                        env.FRONTEND_CHANGED = files.any { it.startsWith('frontend/') } ? 'true' : 'false'
-                    }
+                    // Path-diff skip logic was here (diff against GIT_PREVIOUS_SUCCESSFUL_COMMIT
+                    // or HEAD~1) but only ever compares against the immediate parent commit, not
+                    // cumulatively back to the last build that actually deployed - a push that
+                    // doesn't itself touch backend/frontend (e.g. a Jenkinsfile or infra fix)
+                    // would skip every build/deploy stage even when a real, undeployed app change
+                    // is sitting one or more commits back. Every push now builds and deploys both.
+                    env.BACKEND_CHANGED = 'true'
+                    env.FRONTEND_CHANGED = 'true'
 
                     echo "BACKEND_CHANGED=${env.BACKEND_CHANGED}  FRONTEND_CHANGED=${env.FRONTEND_CHANGED}"
                 }
