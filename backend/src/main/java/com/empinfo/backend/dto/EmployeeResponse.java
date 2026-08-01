@@ -20,6 +20,7 @@ public class EmployeeResponse {
     private LocalDateTime updatedAt;
 
     public EmployeeResponse() {
+        // required by Jackson for deserialization
     }
 
     public Long getId() {

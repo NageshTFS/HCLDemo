@@ -56,6 +56,7 @@ public class Employee {
     private LocalDateTime updatedAt;
 
     public Employee() {
+        // required by JPA
     }
 
     @PrePersist

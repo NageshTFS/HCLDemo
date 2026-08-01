@@ -37,6 +37,9 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                // Safe: this API is stateless (SessionCreationPolicy.STATELESS) and uses HTTP
+                // Basic auth sent on every request, not cookies - CSRF exploits ambient
+                // cookie-based session auth, which doesn't exist here.
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth

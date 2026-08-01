@@ -24,7 +24,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -124,7 +123,7 @@ class EmployeeServiceImplTest {
     @Test
     void updateEmployee_found_updatesAndReturnsMapped() {
         when(employeeRepository.findById(1L)).thenReturn(Optional.of(employee));
-        when(employeeRepository.existsByEmailAndIdNot(eq("ada@example.com"), eq(1L))).thenReturn(false);
+        when(employeeRepository.existsByEmailAndIdNot("ada@example.com", 1L)).thenReturn(false);
         when(employeeRepository.save(any(Employee.class))).thenReturn(employee);
 
         request.setDesignation("Senior Software Engineer");

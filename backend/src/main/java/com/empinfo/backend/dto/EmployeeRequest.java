@@ -31,6 +31,7 @@ public class EmployeeRequest {
     private String status;
 
     public EmployeeRequest() {
+        // required by Jackson for deserialization
     }
 
     public String getFirstName() {
