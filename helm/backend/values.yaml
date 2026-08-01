@@ -30,13 +30,11 @@ configMapName: employee-app-config
 
 # Cloud SQL Auth Proxy sidecar configuration.
 cloudsql:
-  # Cloud SQL instance connection name, e.g. "my-project:us-central1:empinfo-db".
+  # Cloud SQL instance connection name (project:region:instance).
   # Templated into the ConfigMap (key: cloudsql-instance-connection-name) and consumed by the sidecar args.
-  instanceConnectionName: "PROJECT_ID:REGION:INSTANCE_NAME"
+  instanceConnectionName: "hcldemo-504209:us-central1:employee-app-poc-db"
   proxyImage:
-    # Placeholder per shared contract - swap for the current recommended Cloud SQL Auth Proxy image
-    # (e.g. gcr.io/cloud-sql-connections/cloud-sql-proxy) once a real GCP project is wired up.
-    repository: gcr.io/cloud-sql-connection-name/cloud-sql-proxy
+    repository: gcr.io/cloud-sql-connectors/cloud-sql-proxy
     tag: latest
   resources:
     requests:
