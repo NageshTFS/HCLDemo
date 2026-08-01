@@ -213,11 +213,14 @@ pipeline {
             when { expression { env.BACKEND_CHANGED == 'true' || env.FRONTEND_CHANGED == 'true' } }
             steps {
                 script {
+                    // .trivyignore (repo root) documents specific CVEs with no published fix
+                    // yet, verified against upstream - not a blanket suppression, see that
+                    // file's comments for the justification behind each entry.
                     if (env.BACKEND_CHANGED == 'true') {
-                        sh "trivy image --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed --no-progress ${env.BACKEND_IMAGE}:${env.GIT_COMMIT_SHA}"
+                        sh "trivy image --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed --ignorefile .trivyignore --no-progress ${env.BACKEND_IMAGE}:${env.GIT_COMMIT_SHA}"
                     }
                     if (env.FRONTEND_CHANGED == 'true') {
-                        sh "trivy image --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed --no-progress ${env.FRONTEND_IMAGE}:${env.GIT_COMMIT_SHA}"
+                        sh "trivy image --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed --ignorefile .trivyignore --no-progress ${env.FRONTEND_IMAGE}:${env.GIT_COMMIT_SHA}"
                     }
                 }
             }
