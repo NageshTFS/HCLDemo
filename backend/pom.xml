@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.3.4</version>
+        <version>3.5.3</version>
         <relativePath/>
     </parent>
 
@@ -20,6 +20,9 @@
 
     <properties>
         <java.version>21</java.version>
+        <!-- 3.5.3's own BOM pin (10.1.42) predates fixes for several HIGH/CRITICAL Tomcat
+             CVEs the pipeline's Trivy scan (stage 8) blocks on - override to latest. -->
+        <tomcat.version>10.1.55</tomcat.version>
     </properties>
 
     <dependencies>

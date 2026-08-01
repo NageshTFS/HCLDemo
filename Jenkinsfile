@@ -194,13 +194,16 @@ pipeline {
                 stage('Build backend image') {
                     when { expression { env.BACKEND_CHANGED == 'true' } }
                     steps {
-                        sh "docker build -t ${env.BACKEND_IMAGE}:${env.GIT_COMMIT_SHA} ./backend"
+                        // --pull: always fetch the latest base image layers rather than reuse
+                        // a stale local cache - stage 8's Trivy scan blocks on HIGH/CRITICAL
+                        // base-image CVEs, so a cached vulnerable base defeats that gate.
+                        sh "docker build --pull -t ${env.BACKEND_IMAGE}:${env.GIT_COMMIT_SHA} ./backend"
                     }
                 }
                 stage('Build frontend image') {
                     when { expression { env.FRONTEND_CHANGED == 'true' } }
                     steps {
-                        sh "docker build -t ${env.FRONTEND_IMAGE}:${env.GIT_COMMIT_SHA} ./frontend"
+                        sh "docker build --pull -t ${env.FRONTEND_IMAGE}:${env.GIT_COMMIT_SHA} ./frontend"
                     }
                 }
             }
