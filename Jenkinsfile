@@ -60,9 +60,14 @@ pipeline {
     }
 
     parameters {
-        // Never hardcode a real GCP project ID in this file - set a real default via the
-        // Jenkins job configuration (or override per-build) once the project exists.
-        string(name: 'GCP_PROJECT_ID', defaultValue: 'REPLACE_WITH_GCP_PROJECT_ID', description: 'GCP project hosting Artifact Registry and GKE')
+        // Pipeline-from-SCM jobs have no job-level parameter override that applies to
+        // webhook-triggered builds - only this Jenkinsfile default is used for those (a
+        // "Build with Parameters" override only affects a single manual run). Now that this
+        // project is actually deployed, the placeholder this used to be would silently break
+        // every automatic build, so it's the real project ID - same as GAR_LOCATION/
+        // GAR_REPOSITORY/GKE_CLUSTER/GKE_ZONE below, which are likewise real values, not
+        // placeholders.
+        string(name: 'GCP_PROJECT_ID', defaultValue: 'hcldemo-504209', description: 'GCP project hosting Artifact Registry and GKE')
         string(name: 'GAR_LOCATION', defaultValue: 'us-central1', description: 'Artifact Registry region')
         string(name: 'GAR_REPOSITORY', defaultValue: 'employee-app', description: 'Artifact Registry Docker repository name')
         string(name: 'GKE_CLUSTER', defaultValue: 'employee-app-poc-gke', description: 'GKE cluster name (provisioned by Terraform under infra/)')
