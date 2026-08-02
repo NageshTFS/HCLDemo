@@ -192,4 +192,59 @@ class EmployeeControllerTest {
         mockMvc.perform(delete("/api/employees/99").with(httpBasic(USER, PASS)))
                 .andExpect(status().isNotFound());
     }
+
+    // --- Framework-level errors -------------------------------------------------------------
+    // These all used to come back as 500: the advice's catch-all @ExceptionHandler(Exception.class)
+    // was the only match for Spring MVC's own exceptions, so it overrode their correct 4xx status.
+
+    @Test
+    void unmappedApiPath_returns404NotAServerError() throws Exception {
+        mockMvc.perform(get("/api/2").with(httpBasic(USER, PASS)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404));
+    }
+
+    @Test
+    void unsupportedHttpMethod_returns405() throws Exception {
+        mockMvc.perform(delete("/api/employees").with(httpBasic(USER, PASS)))
+                .andExpect(status().isMethodNotAllowed())
+                .andExpect(jsonPath("$.status").value(405));
+    }
+
+    @Test
+    void nonNumericId_returns400() throws Exception {
+        mockMvc.perform(get("/api/employees/abc").with(httpBasic(USER, PASS)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void malformedJsonBody_returns400() throws Exception {
+        mockMvc.perform(post("/api/employees")
+                        .with(httpBasic(USER, PASS))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{bad json"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void unsupportedMediaType_returns415() throws Exception {
+        mockMvc.perform(post("/api/employees")
+                        .with(httpBasic(USER, PASS))
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .content("not json"))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.status").value(415));
+    }
+
+    @Test
+    void unexpectedServiceFailure_stillReturns500() throws Exception {
+        when(employeeService.getAllEmployees()).thenThrow(new IllegalStateException("boom"));
+
+        mockMvc.perform(get("/api/employees").with(httpBasic(USER, PASS)))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.status").value(500))
+                .andExpect(jsonPath("$.message").value("An unexpected error occurred"));
+    }
 }
