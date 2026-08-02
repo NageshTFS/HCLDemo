@@ -35,6 +35,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    // Deliberately opaque: server-side failures must not describe themselves to the caller.
+    private static final String GENERIC_ERROR_MESSAGE = "An unexpected error occurred";
+
     @ExceptionHandler(EmployeeNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFound(EmployeeNotFoundException ex) {
         ErrorResponse body = new ErrorResponse(
@@ -117,7 +120,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         ErrorResponse body = new ErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),
-                "An unexpected error occurred");
+                GENERIC_ERROR_MESSAGE);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 
@@ -129,7 +132,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         if (statusCode.is5xxServerError()) {
             // Never surface framework internals on a server error.
             log.error("Unhandled exception", ex);
-            message = "An unexpected error occurred";
+            message = GENERIC_ERROR_MESSAGE;
         } else if (ex instanceof org.springframework.web.ErrorResponse errorResponse) {
             // Spring's own short, safe description ("Method 'DELETE' is not supported.") rather
             // than ex.getMessage(), which can carry parser/stack detail.
